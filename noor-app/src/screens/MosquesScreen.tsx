@@ -39,6 +39,10 @@ export default function MosquesScreen() {
 
   return (
     <View style={styles.container}>
+      <Pressable style={styles.eventsBanner} onPress={() => navigation.navigate('EventsList')}>
+        <Text style={styles.eventsBannerText}>📅 Voir les événements à venir</Text>
+      </Pressable>
+
       <TextInput
         style={styles.searchInput}
         placeholder="Rechercher par nom ou quartier…"
@@ -80,6 +84,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
+  },
+  eventsBanner: {
+    backgroundColor: '#0f5132',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  eventsBannerText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   searchInput: {
     borderWidth: 1,
