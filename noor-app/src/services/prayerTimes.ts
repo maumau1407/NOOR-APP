@@ -4,6 +4,7 @@ import {
   PrayerTimes as AdhanPrayerTimes,
 } from 'adhan';
 
+import type { MosquePrayerTimes } from '../types/mosque';
 import type { Coordinates, PrayerName, PrayerTime } from '../types/prayer';
 
 export type CalculationMethodName = keyof typeof CalculationMethod;
@@ -35,6 +36,24 @@ export function getPrayerTimesForDate(
     name,
     label: PRAYER_LABELS[name],
     date: times[name],
+  }));
+}
+
+export function combineDateAndTime(date: Date, time: string): Date {
+  const [hours, minutes] = time.split(':').map(Number);
+  const result = new Date(date);
+  result.setHours(hours, minutes, 0, 0);
+  return result;
+}
+
+// Convertit les horaires publiés par une mosquée (chaînes "HH:MM", fixes au
+// jour le jour) en PrayerTime[] pour une date donnée, avec la même forme que
+// getPrayerTimesForDate afin de rester interchangeables dans l'UI.
+export function getMosquePrayerTimesForDate(prayerTimes: MosquePrayerTimes, date: Date): PrayerTime[] {
+  return PRAYER_ORDER.map((name) => ({
+    name,
+    label: PRAYER_LABELS[name],
+    date: combineDateAndTime(date, prayerTimes[name]),
   }));
 }
 

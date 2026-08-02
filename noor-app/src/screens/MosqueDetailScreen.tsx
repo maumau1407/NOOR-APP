@@ -3,10 +3,12 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useFavoriteMosques } from '../hooks/useFavoriteMosques';
 import type { MosquesStackParamList } from '../navigation/MosquesNavigator';
 import type { RootTabParamList } from '../navigation/RootNavigator';
+import { MAX_FAVORITE_MOSQUES } from '../services/favorites';
 import { getMosqueById } from '../services/mosques';
 import type { Mosque } from '../types/mosque';
 
@@ -21,6 +23,7 @@ export default function MosqueDetailScreen() {
   const { params } = useRoute<Props['route']>();
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavoriteMosques();
 
   useEffect(() => {
     getMosqueById(params.mosqueId).then((result) => {
@@ -49,6 +52,18 @@ export default function MosqueDetailScreen() {
     );
   }
 
+  const mosqueIsFavorite = isFavorite(mosque.id);
+
+  const handleToggleFavorite = async () => {
+    const result = await toggleFavorite(mosque.id);
+    if (result === 'limit-reached') {
+      Alert.alert(
+        'Limite atteinte',
+        `Tu peux choisir au maximum ${MAX_FAVORITE_MOSQUES} mosquées favorites. Retire-en une d'abord depuis l'écran Prières.`
+      );
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.name}>{mosque.name}</Text>
@@ -70,6 +85,12 @@ export default function MosqueDetailScreen() {
 
       <Pressable style={styles.button} onPress={() => Linking.openURL(`tel:${mosque.phone.replace(/\s/g, '')}`)}>
         <Text style={styles.buttonText}>Appeler</Text>
+      </Pressable>
+
+      <Pressable style={styles.secondaryButton} onPress={handleToggleFavorite}>
+        <Text style={styles.secondaryButtonText}>
+          {mosqueIsFavorite ? '★ Retirer des favoris' : '☆ Ajouter aux favoris'}
+        </Text>
       </Pressable>
 
       <Pressable

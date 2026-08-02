@@ -8,6 +8,13 @@ export const MOCK_MOSQUES: Mosque[] = [
     neighborhood: 'Cocody',
     address: 'Rue des Jardins, Cocody Angré, Abidjan',
     phone: '+225 07 12 34 56 78',
+    prayerTimes: {
+      fajr: '05:20',
+      dhuhr: '12:30',
+      asr: '15:50',
+      maghrib: '18:20',
+      isha: '19:40',
+    },
   },
   {
     id: '2',
@@ -22,6 +29,13 @@ export const MOCK_MOSQUES: Mosque[] = [
     neighborhood: 'Treichville',
     address: 'Avenue 16, Treichville, Abidjan',
     phone: '+225 01 34 56 78 90',
+    prayerTimes: {
+      fajr: '05:15',
+      dhuhr: '12:25',
+      asr: '15:45',
+      maghrib: '18:15',
+      isha: '19:35',
+    },
   },
   {
     id: '4',
@@ -36,5 +50,12 @@ export const MOCK_MOSQUES: Mosque[] = [
     neighborhood: 'Adjamé',
     address: 'Rue du Marché, Adjamé, Abidjan',
     phone: '+225 05 56 78 90 12',
+    prayerTimes: {
+      fajr: '05:25',
+      dhuhr: '12:35',
+      asr: '15:55',
+      maghrib: '18:25',
+      isha: '19:45',
+    },
   },
 ];
