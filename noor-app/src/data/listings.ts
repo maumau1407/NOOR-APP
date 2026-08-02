@@ -1,0 +1,98 @@
+import type { Listing } from '../types/listing';
+
+// Données de test en dur, à remplacer par de vraies données (Supabase) plus tard.
+// Les images sont des placeholders génériques (picsum.photos) en attendant de
+// vraies photos hébergées sur Supabase Storage.
+export const MOCK_LISTINGS: Listing[] = [
+  {
+    id: '1',
+    title: 'Poulet fermier halal (au kg)',
+    price: 2500,
+    category: 'Viande & Boucherie',
+    sellerName: 'Ibrahim Koné',
+    sellerPhone: '+2250712345601',
+    neighborhood: 'Yopougon',
+    description:
+      'Poulet fermier abattu selon le rite halal, livré frais le jour même. Commande la veille pour garantir la disponibilité.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-1/600/400',
+  },
+  {
+    id: '2',
+    title: 'Mouton entier pour l\'Aïd',
+    price: 85000,
+    category: 'Viande & Boucherie',
+    sellerName: 'Boucherie Al-Baraka',
+    sellerPhone: '+2250712345602',
+    neighborhood: 'Abobo',
+    description:
+      'Mouton entier, sur réservation pour l\'Aïd al-Adha. Abattage halal sur place, possibilité de découpe à la demande.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-2/600/400',
+  },
+  {
+    id: '3',
+    title: 'Boubou brodé homme',
+    price: 25000,
+    category: 'Tenues',
+    sellerName: 'Fatou Couture',
+    sellerPhone: '+2250712345603',
+    neighborhood: 'Cocody',
+    description: 'Boubou traditionnel brodé main, disponible en plusieurs coloris. Toutes tailles sur mesure.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-3/600/400',
+  },
+  {
+    id: '4',
+    title: 'Hijab soie premium',
+    price: 8000,
+    category: 'Tenues',
+    sellerName: 'Aïcha Mode',
+    sellerPhone: '+2250712345604',
+    neighborhood: 'Marcory',
+    description: 'Hijab en soie de haute qualité, tissu doux et non transparent. Plus de 10 couleurs disponibles.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-4/600/400',
+  },
+  {
+    id: '5',
+    title: 'Traiteur mariage (menu 100 pers.)',
+    price: 350000,
+    category: 'Traiteur',
+    sellerName: 'Chez Maimouna Traiteur',
+    sellerPhone: '+2250712345605',
+    neighborhood: 'Yopougon',
+    description:
+      'Menu complet halal pour mariages et cérémonies, jusqu\'à 100 personnes. Riz, viandes, sauces et pâtisseries incluses.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-5/600/400',
+  },
+  {
+    id: '6',
+    title: 'Plateaux repas ftour Ramadan',
+    price: 3000,
+    category: 'Traiteur',
+    sellerName: 'Sanou Traiteur',
+    sellerPhone: '+2250712345606',
+    neighborhood: 'Treichville',
+    description: 'Plateaux individuels pour la rupture du jeûne, préparés chaque jour pendant le Ramadan.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-6/600/400',
+  },
+  {
+    id: '7',
+    title: 'Parfum Oud sans alcool',
+    price: 12000,
+    category: 'Autre',
+    sellerName: 'Boutique Ambre',
+    sellerPhone: '+2250712345607',
+    neighborhood: 'Plateau',
+    description: 'Parfum oud concentré sans alcool, tenue longue durée. Flacon de 12ml.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-7/600/400',
+  },
+  {
+    id: '8',
+    title: 'Tapis de prière artisanal',
+    price: 6000,
+    category: 'Autre',
+    sellerName: 'Artisanat Al-Iman',
+    sellerPhone: '+2250712345608',
+    neighborhood: 'Adjamé',
+    description: 'Tapis de prière tissé main, mousse épaisse et confortable. Plusieurs motifs disponibles.',
+    imageUrl: 'https://picsum.photos/seed/noor-listing-8/600/400',
+  },
+];
