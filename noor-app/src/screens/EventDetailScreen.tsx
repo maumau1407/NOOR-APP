@@ -3,14 +3,14 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import type { MosquesStackParamList } from '../navigation/MosquesNavigator';
+import type { EventsStackParamList } from '../navigation/EventsNavigator';
 import { formatEventDateTime, getEventById } from '../services/events';
 import { getMosqueById } from '../services/mosques';
 import type { ReligiousEvent } from '../types/event';
 import type { Mosque } from '../types/mosque';
 
-type Props = NativeStackScreenProps<MosquesStackParamList, 'EventDetail'>;
-type NavigationProp = NativeStackNavigationProp<MosquesStackParamList, 'EventDetail'>;
+type Props = NativeStackScreenProps<EventsStackParamList, 'EventDetail'>;
+type NavigationProp = NativeStackNavigationProp<EventsStackParamList, 'EventDetail'>;
 
 export default function EventDetailScreen() {
   const navigation = useNavigation<NavigationProp>();

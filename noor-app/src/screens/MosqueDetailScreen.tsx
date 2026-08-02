@@ -1,22 +1,25 @@
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MosquesStackParamList } from '../navigation/MosquesNavigator';
-import { formatEventDateTime, getEventsByMosqueId, getUpcomingEvents } from '../services/events';
+import type { RootTabParamList } from '../navigation/RootNavigator';
 import { getMosqueById } from '../services/mosques';
-import type { ReligiousEvent } from '../types/event';
 import type { Mosque } from '../types/mosque';
 
 type Props = NativeStackScreenProps<MosquesStackParamList, 'MosqueDetail'>;
-type NavigationProp = NativeStackNavigationProp<MosquesStackParamList, 'MosqueDetail'>;
+type NavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<MosquesStackParamList, 'MosqueDetail'>,
+  BottomTabNavigationProp<RootTabParamList>
+>;
 
 export default function MosqueDetailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { params } = useRoute<Props['route']>();
   const [mosque, setMosque] = useState<Mosque | null>(null);
-  const [events, setEvents] = useState<ReligiousEvent[] | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -27,9 +30,6 @@ export default function MosqueDetailScreen() {
       } else {
         setNotFound(true);
       }
-    });
-    getEventsByMosqueId(params.mosqueId).then((mosqueEvents) => {
-      setEvents(getUpcomingEvents(mosqueEvents));
     });
   }, [params.mosqueId, navigation]);
 
@@ -72,25 +72,14 @@ export default function MosqueDetailScreen() {
         <Text style={styles.buttonText}>Appeler</Text>
       </Pressable>
 
-      <View style={styles.eventsSection}>
-        <Text style={styles.eventsSectionTitle}>Événements à venir</Text>
-        {!events ? (
-          <ActivityIndicator color="#0f5132" />
-        ) : events.length === 0 ? (
-          <Text style={styles.infoText}>Aucun événement prévu pour le moment.</Text>
-        ) : (
-          events.map((event) => (
-            <Pressable
-              key={event.id}
-              style={styles.eventCard}
-              onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
-            >
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={styles.eventDate}>{formatEventDateTime(event)}</Text>
-            </Pressable>
-          ))
-        )}
-      </View>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() =>
+          navigation.navigate('Événements', { screen: 'EventsList', params: { mosqueId: mosque.id } })
+        }
+      >
+        <Text style={styles.secondaryButtonText}>Voir les événements de cette mosquée</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -143,30 +132,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  eventsSection: {
-    gap: 10,
-  },
-  eventsSectionTitle: {
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: '#888',
-  },
-  eventCard: {
+  secondaryButton: {
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: '#0f5132',
     borderRadius: 12,
-    padding: 14,
-    gap: 4,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  eventTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+  secondaryButtonText: {
     color: '#0f5132',
-  },
-  eventDate: {
-    fontSize: 13,
-    color: '#555',
-    textTransform: 'capitalize',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

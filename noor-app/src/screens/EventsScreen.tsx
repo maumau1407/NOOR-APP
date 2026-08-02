@@ -1,26 +1,45 @@
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { MosquesStackParamList } from '../navigation/MosquesNavigator';
-import { formatEventDateTime, getEvents, getUpcomingEvents } from '../services/events';
-import { getMosques } from '../services/mosques';
+import type { EventsStackParamList } from '../navigation/EventsNavigator';
+import { formatEventDateTime, getEvents, getEventsByMosqueId, getUpcomingEvents } from '../services/events';
+import { getMosqueById, getMosques } from '../services/mosques';
 import type { ReligiousEvent } from '../types/event';
+import type { Mosque } from '../types/mosque';
 
-type NavigationProp = NativeStackNavigationProp<MosquesStackParamList, 'EventsList'>;
+type Props = NativeStackScreenProps<EventsStackParamList, 'EventsList'>;
+type NavigationProp = NativeStackNavigationProp<EventsStackParamList, 'EventsList'>;
 
 export default function EventsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { params } = useRoute<Props['route']>();
+  const mosqueId = params?.mosqueId;
+
   const [events, setEvents] = useState<ReligiousEvent[] | null>(null);
   const [mosqueNames, setMosqueNames] = useState<Record<string, string>>({});
+  const [filterMosque, setFilterMosque] = useState<Mosque | null>(null);
 
   useEffect(() => {
-    Promise.all([getEvents(), getMosques()]).then(([allEvents, mosques]) => {
-      setEvents(getUpcomingEvents(allEvents));
+    getMosques().then((mosques) => {
       setMosqueNames(Object.fromEntries(mosques.map((mosque) => [mosque.id, mosque.name])));
     });
   }, []);
+
+  useEffect(() => {
+    if (mosqueId) {
+      setEvents(null);
+      Promise.all([getEventsByMosqueId(mosqueId), getMosqueById(mosqueId)]).then(([mosqueEvents, mosque]) => {
+        setEvents(getUpcomingEvents(mosqueEvents));
+        setFilterMosque(mosque ?? null);
+      });
+    } else {
+      setEvents(null);
+      setFilterMosque(null);
+      getEvents().then((allEvents) => setEvents(getUpcomingEvents(allEvents)));
+    }
+  }, [mosqueId]);
 
   if (!events) {
     return (
@@ -32,16 +51,31 @@ export default function EventsScreen() {
 
   return (
     <View style={styles.container}>
+      {filterMosque && (
+        <View style={styles.filterBanner}>
+          <Text style={styles.filterBannerText}>Événements de {filterMosque.name}</Text>
+          <Pressable onPress={() => navigation.setParams({ mosqueId: undefined })}>
+            <Text style={styles.filterBannerReset}>Voir tous les événements</Text>
+          </Pressable>
+        </View>
+      )}
+
       <FlatList
         data={events}
         keyExtractor={(event) => event.id}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Aucun événement à venir pour le moment.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {filterMosque ? 'Aucun événement à venir pour cette mosquée.' : 'Aucun événement à venir pour le moment.'}
+          </Text>
+        }
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => navigation.navigate('EventDetail', { eventId: item.id })}>
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardDate}>{formatEventDateTime(item)}</Text>
-            <Text style={styles.cardMosque}>{mosqueNames[item.mosqueId] ?? 'Mosquée inconnue'}</Text>
+            {!filterMosque && (
+              <Text style={styles.cardMosque}>{mosqueNames[item.mosqueId] ?? 'Mosquée inconnue'}</Text>
+            )}
           </Pressable>
         )}
       />
@@ -63,6 +97,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
+  },
+  filterBanner: {
+    backgroundColor: '#e8f3ec',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  filterBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f5132',
+  },
+  filterBannerReset: {
+    fontSize: 13,
+    color: '#0f5132',
+    textDecorationLine: 'underline',
   },
   list: {
     padding: 16,

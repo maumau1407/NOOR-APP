@@ -3,9 +3,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import type { MosquesStackParamList } from '../navigation/MosquesNavigator';
+import type { EventsStackParamList } from '../navigation/EventsNavigator';
 
-type NavigationProp = NativeStackNavigationProp<MosquesStackParamList, 'NewEvent'>;
+type NavigationProp = NativeStackNavigationProp<EventsStackParamList, 'NewEvent'>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^\d{2}:\d{2}$/;
