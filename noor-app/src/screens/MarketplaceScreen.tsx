@@ -1,6 +1,6 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,17 +22,38 @@ type CategoryFilter = ListingCategory | 'Tous';
 export default function MarketplaceScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [listings, setListings] = useState<Listing[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('Tous');
 
-  useEffect(() => {
-    getListings().then(setListings);
+  const loadListings = useCallback(() => {
+    setError(null);
+    getListings()
+      .then(setListings)
+      .catch(() => {
+        setError('Impossible de charger les annonces. Vérifie ta connexion internet.');
+      });
   }, []);
+
+  // Recharge à chaque fois que l'onglet reprend le focus, pour que les
+  // annonces qu'on vient de publier apparaissent en revenant du formulaire.
+  useFocusEffect(loadListings);
 
   const filteredListings = useMemo(() => {
     if (!listings) return [];
     if (selectedCategory === 'Tous') return listings;
     return listings.filter((listing) => listing.category === selectedCategory);
   }, [listings, selectedCategory]);
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable style={styles.retryButton} onPress={loadListings}>
+          <Text style={styles.retryButtonText}>Réessayer</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (!listings) {
     return (
@@ -104,6 +125,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
+    padding: 24,
+    gap: 12,
+  },
+  errorText: {
+    color: '#b3261e',
+    textAlign: 'center',
+    fontSize: 15,
+  },
+  retryButton: {
+    backgroundColor: '#0f5132',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   chipsContainer: {
     flexGrow: 0,

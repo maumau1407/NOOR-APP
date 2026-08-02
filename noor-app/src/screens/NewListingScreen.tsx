@@ -1,9 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { MarketplaceStackParamList } from '../navigation/MarketplaceNavigator';
+import { createListing } from '../services/listings';
 import { LISTING_CATEGORIES, type ListingCategory } from '../types/listing';
 
 type NavigationProp = NativeStackNavigationProp<MarketplaceStackParamList, 'NewListing'>;
@@ -15,36 +16,57 @@ export default function NewListingScreen() {
   const [category, setCategory] = useState<ListingCategory | null>(null);
   const [neighborhood, setNeighborhood] = useState('');
   const [description, setDescription] = useState('');
+  const [sellerName, setSellerName] = useState('');
+  const [sellerPhone, setSellerPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmedTitle = title.trim();
     const trimmedNeighborhood = neighborhood.trim();
+    const trimmedSellerName = sellerName.trim();
+    const trimmedSellerPhone = sellerPhone.trim();
     const priceValue = Number(price.replace(',', '.'));
 
-    if (!trimmedTitle || !category || !trimmedNeighborhood || !price || Number.isNaN(priceValue) || priceValue <= 0) {
-      setError('Merci de remplir le titre, un prix valide, la catégorie et le quartier.');
+    if (
+      !trimmedTitle ||
+      !category ||
+      !trimmedNeighborhood ||
+      !trimmedSellerName ||
+      !trimmedSellerPhone ||
+      !price ||
+      Number.isNaN(priceValue) ||
+      priceValue <= 0
+    ) {
+      setError('Merci de remplir le titre, un prix valide, la catégorie, ton nom, ton numéro et le quartier.');
       return;
     }
 
     setError(null);
-
-    // Pas encore de sauvegarde réelle : Supabase sera branché ici plus tard.
-    Alert.alert(
-      'Annonce créée (aperçu)',
-      [
-        `Titre : ${trimmedTitle}`,
-        `Prix : ${priceValue.toLocaleString('fr-FR')} FCFA`,
-        `Catégorie : ${category}`,
-        `Quartier : ${trimmedNeighborhood}`,
-        description.trim() ? `Description : ${description.trim()}` : null,
-        '',
-        "Cette annonce n'est pas encore enregistrée (pas de backend branché).",
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
-    );
+    setSubmitting(true);
+    try {
+      await createListing({
+        title: trimmedTitle,
+        price: priceValue,
+        category,
+        sellerName: trimmedSellerName,
+        sellerPhone: trimmedSellerPhone,
+        neighborhood: trimmedNeighborhood,
+        description: description.trim(),
+        imageUrl: `https://picsum.photos/seed/noor-${Date.now()}/600/400`,
+      });
+      Alert.alert('Annonce publiée', 'Ton annonce est maintenant visible dans le Marketplace.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Impossible de publier l'annonce : ${err.message}`
+          : "Impossible de publier l'annonce. Vérifie ta connexion internet."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -102,6 +124,29 @@ export default function NewListingScreen() {
       </View>
 
       <View style={styles.field}>
+        <Text style={styles.label}>Ton nom</Text>
+        <TextInput
+          style={styles.input}
+          value={sellerName}
+          onChangeText={setSellerName}
+          placeholder="Ex. Awa Traoré"
+          placeholderTextColor="#888"
+        />
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Ton numéro (WhatsApp)</Text>
+        <TextInput
+          style={styles.input}
+          value={sellerPhone}
+          onChangeText={setSellerPhone}
+          placeholder="+225 07 00 00 00 00"
+          placeholderTextColor="#888"
+          keyboardType="phone-pad"
+        />
+      </View>
+
+      <View style={styles.field}>
         <Text style={styles.label}>Description</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -116,8 +161,8 @@ export default function NewListingScreen() {
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      <Pressable style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Publier l'annonce</Text>
+      <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
+        {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Publier l'annonce</Text>}
       </Pressable>
     </ScrollView>
   );

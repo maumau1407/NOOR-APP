@@ -1,6 +1,6 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 
 import type { MarketplaceStackParamList } from '../navigation/MarketplaceNavigator';
@@ -15,17 +15,39 @@ export default function ListingDetailScreen() {
   const { params } = useRoute<Props['route']>();
   const [listing, setListing] = useState<Listing | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadListing = useCallback(() => {
+    setError(null);
+    setNotFound(false);
+    getListingById(params.listingId)
+      .then((result) => {
+        if (result) {
+          setListing(result);
+          navigation.setOptions({ title: result.title });
+        } else {
+          setNotFound(true);
+        }
+      })
+      .catch(() => {
+        setError('Impossible de charger cette annonce. Vérifie ta connexion internet.');
+      });
+  }, [params.listingId, navigation]);
 
   useEffect(() => {
-    getListingById(params.listingId).then((result) => {
-      if (result) {
-        setListing(result);
-        navigation.setOptions({ title: result.title });
-      } else {
-        setNotFound(true);
-      }
-    });
-  }, [params.listingId, navigation]);
+    loadListing();
+  }, [loadListing]);
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.infoText}>{error}</Text>
+        <Pressable style={styles.retryButton} onPress={loadListing}>
+          <Text style={styles.buttonText}>Réessayer</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (notFound) {
     return (
@@ -92,6 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
     padding: 24,
+    gap: 12,
   },
   infoText: {
     fontSize: 15,
@@ -143,6 +166,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
+  },
+  retryButton: {
+    backgroundColor: '#0f5132',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
   buttonText: {
     color: '#fff',
