@@ -1,12 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { useFavoriteMosques } from '../hooks/useFavoriteMosques';
+import { useMosquePrayerOverrides } from '../hooks/useMosquePrayerOverrides';
 import { usePrayerTimes } from '../hooks/usePrayerTimes';
 import { MAX_FAVORITE_MOSQUES } from '../services/favorites';
 import { getMosques } from '../services/mosques';
-import { findNextPrayer, formatCountdown, formatTime, getMosquePrayerTimesForDate } from '../services/prayerTimes';
-import type { Mosque } from '../types/mosque';
+import {
+  findNextPrayer,
+  formatCountdown,
+  formatTime,
+  getMosquePrayerTimesForDate,
+  PRAYER_LABELS,
+} from '../services/prayerTimes';
+import type { Mosque, MosquePrayerTimes } from '../types/mosque';
+import type { PrayerName } from '../types/prayer';
+
+const TIME_PATTERN = /^\d{2}:\d{2}$/;
+const PRAYER_FORM_ORDER: PrayerName[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+const EMPTY_TIMES: Record<PrayerName, string> = { fajr: '', dhuhr: '', asr: '', maghrib: '', isha: '' };
 
 export default function PrayersScreen() {
   const {
@@ -22,9 +45,14 @@ export default function PrayersScreen() {
   } = usePrayerTimes();
 
   const { favoriteIds, toggleFavorite } = useFavoriteMosques();
+  const { overrides, saveOverride, clearOverride } = useMosquePrayerOverrides();
   const [mosques, setMosques] = useState<Mosque[] | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
+
+  const [editingMosque, setEditingMosque] = useState<Mosque | null>(null);
+  const [editValues, setEditValues] = useState<Record<PrayerName, string>>(EMPTY_TIMES);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     getMosques().then(setMosques);
@@ -37,16 +65,22 @@ export default function PrayersScreen() {
       .filter((mosque): mosque is Mosque => Boolean(mosque));
   }, [mosques, favoriteIds]);
 
+  // Priorité : horaires officiels (mosque.prayerTimes) > horaires saisis par
+  // l'utilisateur (overrides) > calcul automatique par géolocalisation.
+  const getEffectiveSource = (mosque: Mosque): MosquePrayerTimes | null =>
+    mosque.prayerTimes ?? overrides[mosque.id] ?? null;
+
   const primaryFavorite = favoriteMosques[0];
+  const primarySource = primaryFavorite ? getEffectiveSource(primaryFavorite) : null;
 
   const primaryNextPrayer = useMemo(() => {
-    if (!primaryFavorite?.prayerTimes) return null;
-    const todayTimes = getMosquePrayerTimesForDate(primaryFavorite.prayerTimes, now);
+    if (!primarySource) return null;
+    const todayTimes = getMosquePrayerTimesForDate(primarySource, now);
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowTimes = getMosquePrayerTimesForDate(primaryFavorite.prayerTimes, tomorrow);
+    const tomorrowTimes = getMosquePrayerTimesForDate(primarySource, tomorrow);
     return findNextPrayer(todayTimes, tomorrowTimes[0], now);
-  }, [primaryFavorite, now]);
+  }, [primarySource, now]);
 
   const displayedNextPrayer = primaryNextPrayer ?? autoNextPrayer;
 
@@ -57,6 +91,37 @@ export default function PrayersScreen() {
         ? `Tu peux choisir au maximum ${MAX_FAVORITE_MOSQUES} mosquées favorites. Retire-en une d'abord.`
         : null
     );
+  };
+
+  const openEditModal = (mosque: Mosque) => {
+    const existing = overrides[mosque.id];
+    const seed = existing
+      ? { ...existing }
+      : todayPrayerTimes.length === 5
+        ? (Object.fromEntries(todayPrayerTimes.map((p) => [p.name, formatTime(p.date)])) as Record<
+            PrayerName,
+            string
+          >)
+        : EMPTY_TIMES;
+    setEditValues(seed);
+    setEditError(null);
+    setEditingMosque(mosque);
+  };
+
+  const closeEditModal = () => {
+    setEditingMosque(null);
+    setEditError(null);
+  };
+
+  const handleSaveOverride = async () => {
+    const invalid = PRAYER_FORM_ORDER.some((name) => !TIME_PATTERN.test(editValues[name]));
+    if (invalid) {
+      setEditError('Merci de renseigner les 5 horaires au format HH:MM (ex. 05:15).');
+      return;
+    }
+    if (!editingMosque) return;
+    await saveOverride(editingMosque.id, editValues as MosquePrayerTimes);
+    closeEditModal();
   };
 
   if (locationState.status === 'loading') {
@@ -106,9 +171,11 @@ export default function PrayersScreen() {
         ) : (
           <>
             {favoriteMosques.map((mosque) => {
-              const times = mosque.prayerTimes
-                ? getMosquePrayerTimesForDate(mosque.prayerTimes, now)
-                : todayPrayerTimes;
+              const hasOfficialTimes = Boolean(mosque.prayerTimes);
+              const override = overrides[mosque.id];
+              const source = getEffectiveSource(mosque);
+              const times = source ? getMosquePrayerTimesForDate(source, now) : todayPrayerTimes;
+
               return (
                 <View key={mosque.id} style={styles.favoriteCard}>
                   <View style={styles.favoriteCardHeader}>
@@ -117,7 +184,13 @@ export default function PrayersScreen() {
                       <Text style={styles.favoriteRemove}>Retirer</Text>
                     </Pressable>
                   </View>
-                  {!mosque.prayerTimes && <Text style={styles.estimatedNote}>Horaires estimés (calcul automatique)</Text>}
+
+                  {!hasOfficialTimes && (
+                    <Text style={styles.estimatedNote}>
+                      {override ? 'Horaires renseignés par vous' : 'Horaires estimés (calcul automatique)'}
+                    </Text>
+                  )}
+
                   {times.length === 0 ? (
                     <Text style={styles.infoText}>Horaires indisponibles pour le moment.</Text>
                   ) : (
@@ -128,6 +201,23 @@ export default function PrayersScreen() {
                           <Text style={styles.favoriteTimeValue}>{formatTime(prayer.date)}</Text>
                         </View>
                       ))}
+                    </View>
+                  )}
+
+                  {!hasOfficialTimes && (
+                    <View style={styles.favoriteCardActions}>
+                      <Pressable onPress={() => openEditModal(mosque)}>
+                        <Text style={styles.favoriteCardActionText}>
+                          {override ? 'Modifier les horaires' : 'Modifier les horaires de cette mosquée'}
+                        </Text>
+                      </Pressable>
+                      {override && (
+                        <Pressable onPress={() => clearOverride(mosque.id)}>
+                          <Text style={styles.favoriteCardActionTextMuted}>
+                            Réinitialiser (calcul automatique)
+                          </Text>
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>
@@ -217,6 +307,36 @@ export default function PrayersScreen() {
             <Text style={styles.buttonText}>Terminé</Text>
           </Pressable>
         </View>
+      </Modal>
+
+      <Modal visible={editingMosque !== null} animationType="slide" onRequestClose={closeEditModal}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Modifier les horaires</Text>
+          {editingMosque && <Text style={styles.modalSubtitle}>{editingMosque.name}</Text>}
+
+          {PRAYER_FORM_ORDER.map((name) => (
+            <View key={name} style={styles.field}>
+              <Text style={styles.label}>{PRAYER_LABELS[name]}</Text>
+              <TextInput
+                style={styles.input}
+                value={editValues[name]}
+                onChangeText={(text) => setEditValues((current) => ({ ...current, [name]: text }))}
+                placeholder="HH:MM"
+                placeholderTextColor="#888"
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+          ))}
+
+          {editError && <Text style={styles.errorText}>{editError}</Text>}
+
+          <Pressable style={styles.button} onPress={handleSaveOverride}>
+            <Text style={styles.buttonText}>Enregistrer</Text>
+          </Pressable>
+          <Pressable style={[styles.button, styles.secondaryButton]} onPress={closeEditModal}>
+            <Text style={styles.buttonText}>Annuler</Text>
+          </Pressable>
+        </ScrollView>
       </Modal>
     </ScrollView>
   );
@@ -315,6 +435,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111',
     fontVariant: ['tabular-nums'],
+  },
+  favoriteCardActions: {
+    gap: 4,
+  },
+  favoriteCardActionText: {
+    fontSize: 13,
+    color: '#0f5132',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  favoriteCardActionTextMuted: {
+    fontSize: 13,
+    color: '#888',
   },
   editFavoritesButton: {
     alignSelf: 'flex-start',
@@ -416,8 +549,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
   },
+  field: {
+    gap: 6,
+  },
+  label: {
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#888',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111',
+  },
   modalContainer: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#fff',
     padding: 20,
     paddingTop: 60,

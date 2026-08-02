@@ -12,6 +12,8 @@ export interface Mosque {
   neighborhood: string;
   address: string;
   phone: string;
+  latitude: number;
+  longitude: number;
   // Horaires publiés par la mosquée elle-même. Absent = pas d'horaires
   // personnalisés, on retombe sur le calcul automatique par géolocalisation.
   prayerTimes?: MosquePrayerTimes;

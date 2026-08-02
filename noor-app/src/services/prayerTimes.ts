@@ -15,7 +15,7 @@ export const DEFAULT_CALCULATION_METHOD: CalculationMethodName = 'MuslimWorldLea
 
 const PRAYER_ORDER: PrayerName[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
-const PRAYER_LABELS: Record<PrayerName, string> = {
+export const PRAYER_LABELS: Record<PrayerName, string> = {
   fajr: 'Fajr',
   dhuhr: 'Dhuhr',
   asr: 'Asr',
