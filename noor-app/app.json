@@ -20,6 +20,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "NOOR utilise ta position pour calculer les heures de prière exactes de l'endroit où tu te trouves."
+        }
+      ],
+      "expo-notifications"
+    ]
   }
 }
